@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "axios": "^0.17.1",
+    "cheerio": "^1.0.0-rc.2",
+    "colors": "^1.1.2",
+    "moment": "^2.20.1",
+    "process-argv": "^1.0.0",
+    "redis": "^2.8.0",
+    "simplecrawler": "^1.1.6",
+    "snoowrap": "^1.15.2",
+    "socket.io-client": "^2.0.4",
+    "twitter": "^1.7.1"
+  }
+}

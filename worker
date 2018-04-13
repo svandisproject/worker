@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+let colors = require('colors');
+let args = require('process-argv')({
+    enable_commands: true
+});
+let axios = require('axios');
+let config = require('./config');
+let fs = require('fs');
+
+switch (args.command) {
+    case "register":
+        registerWorker();
+        break;
+    case "start":
+        startWorker();
+        break;
+    default:
+        console.log('Command should be specified'.red);
+        break;
+}
+
+function registerWorker() {
+    if(typeof args.options === 'undefined' || typeof args.options.secret === 'undefined') {
+        console.log('Secret is required to register worker'.red);
+        process.exit(1);
+    }
+    console.log('Registering worker'.green);
+    axios.post(
+        config.API_URL + '/worker/register', {
+            secret: args.options.secret
+        })
+        .then((response) => {
+            let token = response.data.token;
+            fs.writeFileSync(__dirname + '/runtime.json', JSON.stringify({secret: token}));
+            console.log("Successfully registered worker".bgGreen.black);
+
+        })
+        .catch(function (error) {
+            console.error("Error registering worker".red);
+            if(error.response.status === 403) {
+                console.error("Bad worker secret".red);
+            }
+        });
+}
+
+function startWorker() {
+    let runtime = require(__dirname + '/runtime.json');
+    axios.defaults.headers.common['X-WORKER-TOKEN'] = runtime.secret;
+    let socket = require('socket.io-client')(config.SOCKET_SERVER_URL, {
+        reconnect: true,
+        query: 'secret=' + runtime.secret
+    });
+    let io = require('socket.io-client')
+    socket.on('connect', function(){
+        console.log("Connected to socket server".yellow)
+    });
+    heartbeat();
+    console.log("Worker started".green)
+    socket.on('worker-crawl-task', function(task) {
+        console.log("Crawling task received".blue)
+        executeTask(task, axios)
+    });
+}
+
+function heartbeat() {
+    setInterval(() => {
+        axios.post(config.API_URL + '/worker/heartbeat')
+            .then((response) => {
+            console.log("Heartbeat sent.".green)
+            }).catch((error) => {
+            console.log(error)
+        })
+    }, 60000);
+}
+
+function executeTask(task, axios) {
+    console.log(('Trying to execute task ' + task.name).blue)
+    let crawler = false;
+    switch (task.name) {
+        case 'web':
+            crawler = require('./crawlers/web');
+            break;
+        case 'twitter':
+            crawler = require('./crawlers/twitter');
+            break;
+        case 'facebook':
+            crawler = require('./crawlers/facebook');
+            break;
+        default:
+            break;
+    }
+
+    if(crawler) {
+        crawler.execute(task, axios);
+    } else {
+        console.error(('No crawler found for task '+ task.name).red)
+    }
+
+}
