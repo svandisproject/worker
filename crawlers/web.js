@@ -40,6 +40,7 @@ let instance = {
         // });
 
 
+
         crawler.on("fetchcomplete", function (queueItem, responseBuffer, response, body) {
             let data = {};
             let $ = cheerio.load(responseBuffer.toString());
