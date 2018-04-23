@@ -7,13 +7,13 @@ const moment = require('moment');
 
 let instance = {
     execute(task, axios) {
-        let redisClient = redis.createClient();
-        let crawler = Crawler(task.url);
+        // let redisClient = redis.createClient();
+        let crawler = Crawler(task.config.url);
         crawler.maxDepth = 3;
         crawler.maxConcurrency = 3;
 
         crawler.discoverResources = function(buffer, queueItem) {
-            var $ = cheerio.load(buffer.toString("utf8"));
+            let $ = cheerio.load(buffer.toString("utf8"));
 
             return $("a[href]").map(function () {
                 return $(this).attr("href");
@@ -30,7 +30,7 @@ let instance = {
                     data.url     = queueItem.url;
                     data.title   = $(task.config.titleSelector).text();
                     data.content = $(task.config.contentSelector).text();
-                    data.source  = task.url;
+                    data.source  = task.config.url;
                     if(task.config.dateFormat && $(task.config.publishedAtSelector).text()) {
                         let date = moment($(task.config.publishedAtSelector).text(), task.config.dateFormat)
                         if(date.isValid()) {
@@ -43,7 +43,7 @@ let instance = {
 
                     if(data.url && data.title && data.content && data.source && data.publishedAt) {
                         console.log('Valid post');
-                        axios.post(config.API_URL + '/api/website-post', { 'website_post': data })
+                        axios.post(config.API_URL + '/api/post', { 'post': data })
                             .then(function(response) {
                                 console.log(response);
                                 redisClient.set(queueItem.url, STATUS_SUCCESS)

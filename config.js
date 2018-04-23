@@ -1,4 +1,4 @@
 module['exports'] = {
-    API_URL: 'http://localhost:8000',
-    SOCKET_SERVER_URL: 'http://localhost:1337'
+    API_URL: 'https://svandis-api.herokuapp.com',
+    SOCKET_SERVER_URL: 'https://svandis-socket.herokuapp.com'
 };

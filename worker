@@ -57,7 +57,8 @@ function startWorker() {
     });
     heartbeat();
     console.log("Worker started".green)
-    socket.on('worker-crawl-task', function(task) {
+    socket.on('task-config-update', function(task) {
+        console.log(task);
         console.log("Crawling task received".blue)
         executeTask(task, axios)
     });
@@ -77,7 +78,7 @@ function heartbeat() {
 function executeTask(task, axios) {
     console.log(('Trying to execute task ' + task.name).blue)
     let crawler = false;
-    switch (task.name) {
+    switch (task.type) {
         case 'web':
             crawler = require('./crawlers/web');
             break;
@@ -94,7 +95,7 @@ function executeTask(task, axios) {
     if(crawler) {
         crawler.execute(task, axios);
     } else {
-        console.error(('No crawler found for task '+ task.name).red)
+        console.error(('No crawler found for task '+ task.type).red)
     }
 
 }
