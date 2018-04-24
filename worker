@@ -58,8 +58,8 @@ function startWorker() {
     heartbeat();
     console.log("Worker started".green)
     socket.on('task-config-update', function(task) {
-        // console.log(task);
-        // console.log("Crawling task received".blue)
+        console.log(task);
+        console.log("Crawling task received".blue)
         executeTask(task, axios)
     });
 }
@@ -76,7 +76,7 @@ function heartbeat() {
 }
 
 function executeTask(task, axios) {
-    // console.log(('Trying to execute task ' + task.type).blue)
+    console.log(('Trying to execute task ' + task.type).blue)
     let crawler = false;
     switch (task.type) {
         case 'web':
