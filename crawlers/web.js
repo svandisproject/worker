@@ -14,20 +14,20 @@ let instance = {
 
             crawler.discoverResources = function (buffer, queueItem) {
                 let $ = cheerio.load(buffer.toString("utf8"));
-                if(task.config.publishedAtSelector === '.article-container-left-timestamp') {
-                    return $(".content a[href]").map(function () {
-                        return $(this).attr("href");
-                    }).get();
-                }
-                if(task.config.publishedAtSelector === '.date') {
-                    return $("#main-news a[href]").map(function () {
-                        return $(this).attr("href");
-                    }).get();
-                }
-                if(task.config.publishedAtSelector === '.entry-meta-date') {
-                    return $(".mh-wrapper a[href]").map(function () {
-                        return $(this).attr("href");
-                    }).get();
+                switch(task.config.url) {
+                    case 'https://coindesk.com':
+                        return $(".content a[href]").map(function () {
+                            return $(this).attr("href");
+                        }).get();
+                    case 'https://cointelegraph.com':
+                        return $("#main-news a[href]").map(function () {
+                            return $(this).attr("href");
+                        }).get();
+
+                    case 'https://cryptocurrencynews.com/':
+                        return $(".mh-wrapper a[href]").map(function () {
+                            return $(this).attr("href");
+                        }).get();
                 }
             };
 
@@ -45,13 +45,17 @@ let instance = {
             data.content = $(task.config.contentSelector).text();
             data.source = task.config.url;
 
-                if (task.config.publishedAtSelector === '.date') {
-                    data.publishedAt = moment($(task.config.publishedAtSelector).attr('datetime')).format('YYYY-MM-DD HH:mm:ss');
-                } else if (task.config.publishedAtSelector === '.article-container-left-timestamp') {
+            switch (task.config.url){
+                case 'https://coindesk.com':
                     data.publishedAt = moment(($(task.config.publishedAtSelector).text()).substr(2, 22), task.config.dateFormat);
-                } else if(task.config.publishedAtSelector === '.entry-meta-date'){
+                    break;
+                case 'https://cointelegraph.com':
+                    data.publishedAt = moment($(task.config.publishedAtSelector).attr('datetime')).format('YYYY-MM-DD HH:mm:ss');
+                    break;
+                case 'https://cryptocurrencynews.com/':
                     data.publishedAt = moment($(task.config.publishedAtSelector).text(), task.config.dateFormat);
-                }
+                    break;
+            }
 
             if (data.url && data.title && data.content && data.source && data.publishedAt) {
                 console.log('Valid post');
