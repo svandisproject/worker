@@ -27,24 +27,12 @@ let instance = {
                     return newRedditPosts;
                 }
             ).then(
-            newRedditPosts => {
 
-                axios.get(config.API_URL + '/api/post/filter?source=reddit&limit=1&sort=id')
-                    .then(
-                        (response) => {
-                            let lastRedditUrlFromDB = '0';
-                            if(response.data.total !== '0'){
-                                lastRedditUrlFromDB = response.data.rows[0].url;
-                            }
-                            for(let i = 0; i < newRedditPosts.length; i++){
-
-                                if(newRedditPosts.slice(0).reverse()[i].url === lastRedditUrlFromDB){
-                                    console.log('breake');
-                                    break
-                                }else  axios.post(config.API_URL + '/api/post', {'post': newRedditPosts[i]})
-                            }
-                        });
-            }
+            newRedditPosts => {newRedditPosts.map(post =>
+                {
+                    axios.post(config.API_URL + '/api/post', {'post': post})
+                }
+            )}
         );
     }
 };
