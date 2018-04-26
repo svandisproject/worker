@@ -21,20 +21,17 @@ let instance = {
                     let newRedditPosts = [];
                     response.slice(0).reverse().map(e => {
 
-                        newRedditPosts.push({title: e.title, url: e.url, content: '', source: 'reddit', publishedAt: new Date(e.created_utc * 1000)})
+                        newRedditPosts.push({title: e.title, url: e.url, content: e.id, source: 'reddit', publishedAt: new Date(e.created_utc * 1000)})
                     });
 
                     return newRedditPosts;
                 }
             ).then(
-
-            newRedditPosts => {newRedditPosts.map(post =>
-                {
-                    axios.post(config.API_URL + '/api/post', {'post': post})
-                }
-            )}
-        );
+            newRedditPosts => {newRedditPosts.map(post => {
+                axios.post(config.API_URL + '/api/post', {'post': post})
+            })});
     }
+
 };
 
 module['exports'] = instance;
