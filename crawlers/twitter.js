@@ -1,4 +1,5 @@
 const Twitter = require('twitter');
+const moment = require('moment');
 
 let instance = {
     execute(task, axios) {
@@ -13,7 +14,7 @@ let instance = {
 
         let params = {screen_name: task.config.username};
 
-        client.get('statuses/user_timeline', params, function(error, tweets, response) {
+        client.get('statuses/home_timeline', params, function(error, tweets, response) {
             if(error) {
                 console.log(error)
             }
@@ -21,13 +22,13 @@ let instance = {
                 tweets.map((tweet) => {
                     axios.post(`${config.API_URL}/api/post`, {
                         post: {
-                            url: `https://twitter.com/statuses/${tweet.id}`,
+                            url: 'https://twitter.com/statuses/' + tweet.id,
                             title: tweet.text,
                             content: tweet.text,
                             source: 'twitter',
-                            publishedAt: tweet.created_at,
-                        },
-                    });
+                            publishedAt: moment(new Date(tweet.created_at)).format('YYYY-MM-DD HH:mm:ss'),
+                        }
+                    })
                 });
             }
         });
