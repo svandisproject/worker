@@ -1,5 +1,6 @@
 const Twitter = require('twitter');
 const moment = require('moment');
+const config = require('../config');
 
 let instance = {
     execute(task, axios) {
@@ -14,7 +15,7 @@ let instance = {
 
         let params = {screen_name: task.config.username};
 
-        client.get('statuses/home_timeline', params, function(error, tweets, response) {
+        client.get('statuses/user_timeline', params, function(error, tweets, response) {
             if(error) {
                 console.log(error)
             }
