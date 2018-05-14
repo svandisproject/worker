@@ -1,5 +1,6 @@
 const Twitter = require('twitter');
 const moment = require('moment');
+const config = require('../config');
 
 let instance = {
     execute(task, axios) {
