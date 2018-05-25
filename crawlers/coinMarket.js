@@ -4,35 +4,46 @@ const config = require('../config');
 // let instance = {
 //     execute(task, axios) {
 
-        axios.get('https://api.coinmarketcap.com/v1/ticker?limit=1')
-            .then((res) => {
-                res.data.map((coin) => {
-                    axios.post('http://127.0.0.1:8000/api/asset', {
-                    // axios.post(`${config.API_URL}/api/asset`, {
-                        asset: {
-                            name: coin.name,
-                            symbol: coin.symbol,
-                            rank: coin.rank,
-                            priceUsd: coin.price_usd,
-                            priceBtc: coin.price_btc,
-                            volumeUsd24h: coin['24h_volume_usd'],
-                            marketCapUsd: coin.market_cap_usd,
-                            availableSupply: coin.available_supply,
-                            totalSupply: coin.total_supply,
-                            percentChange1h: coin.percent_change_1h,
-                            percentChange24h: coin.percent_change_24h,
-                            percentChange7d: coin.percent_change_7d,
-                            lastUpdated: moment(new Date(coin.last_updated*1000)).format('YYYY-MM-DD HH:mm:ss')
-                        }
-                    })
-                    .then((resp) => {
-                        console.log(resp,1);
-                    })
-                    .catch((error) => {
-                        console.log(error.response.headers, 2);
-                    });
+            axios.get('https://api.coinmarketcap.com/v2/global')
+                .then(res => {
+                    return Math.ceil(res.data.data.active_cryptocurrencies / 100);
                 })
-            })
+                .then(i => {
+                    for(let n = 0; n < i; n++){
+                        axios.get('https://api.coinmarketcap.com/v1/ticker?start=' + (n * 100))
+                        .then((res) => {
+                            res.data.map((coin) => {
+                                axios.post(`${config.API_URL}/api/asset`, {
+                                    asset: {
+                                        name: coin.name,
+                                        symbol: coin.symbol,
+                                        rank: coin.rank,
+                                        price_usd: coin.price_usd,
+                                        price_btc: coin.price_btc,
+                                        volume_usd24h: coin['24h_volume_usd'],
+                                        market_cap_usd: coin.market_cap_usd,
+                                        available_supply: coin.available_supply,
+                                        total_supply: coin.total_supply,
+                                        max_supply: coin.max_supply,
+                                        percent_change1h: coin.percent_change_1h,
+                                        percent_change24h: coin.percent_change_24h,
+                                        percent_change7d: coin.percent_change_7d,
+                                        last_updated: moment(new Date(coin.last_updated*1000)).format('YYYY-MM-DD HH:mm:ss')
+                                    }
+                                })
+                                .then((resp) => {
+                                    // console.log(3);
+                                    // console.log(resp,1);
+                                })
+                                .catch((error) => {
+                                    console.log(coin.rank);
+                                    // console.log(error.response.headers, 2);
+                                })
+                            });
+                        });
+                    }
+                });
+
 //     }
 // };
 //
