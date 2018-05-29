@@ -5,20 +5,11 @@ import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
 import {Observable, throwError} from "rxjs/index";
-import {Client, ClientProxy, Transport} from "@nestjs/microservices";
 import {AppConfig} from "../config/AppConfig";
 import * as io from 'socket.io-client';
 
 @Injectable()
 export class WorkerTaskRunner {
-    @Client({
-        transport: Transport.TCP,
-        options: {
-            host: AppConfig.SOCKET_SERVER_URL,
-            port: AppConfig.SOCKET_SERVER_PORT
-        }
-    })
-    private workerClient: ClientProxy;
 
     constructor(private workerResource: WorkerResource) {
     }
@@ -54,10 +45,7 @@ export class WorkerTaskRunner {
             query: 'secret=' + runtime.secret
         });
 
-        this.workerClient.connect()
-            .then(() => Logger.log(colors.yellow("Connected to socket server")));
-
-        this.workerClient.send({query: 'secret'}, runtime.secret);
+        socket.on('connect', () => Logger.log(colors.yellow("Connected to socket server")));
 
         this.heartbeat();
         Logger.log("Worker started".green);
