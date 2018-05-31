@@ -1,4 +1,4 @@
-import {AssetFactory} from 'factory/AssetFactory';
+const AssetFactory = require('./factory/AssetFactory');
 const config = require('../config');
 let instance = {
     execute(task, axios) {

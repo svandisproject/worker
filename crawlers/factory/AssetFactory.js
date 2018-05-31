@@ -1,4 +1,4 @@
-export class AssetFactory {
+class AssetFactory {
     static buildAsset(coin) {
         return {
             name: coin.name,
@@ -17,3 +17,5 @@ export class AssetFactory {
         }
     }
 }
+
+module.exports = AssetFactory;
