@@ -39,8 +39,7 @@ export class WorkerTaskRunner {
 
     public startWorker(): void {
         const runtime = require(process.env.PWD + '/runtime.json');
-        // axios.defaults.headers.common['X-WORKER-TOKEN'] = runtime.token;
-        const socket = io(AppConfig.SOCKET_SERVER_URL, {
+        const socket = io(AppConfig.SOCKET_SERVER_URL + ':' + AppConfig.SOCKET_SERVER_PORT, {
             forceNew: true,
             query: 'secret=' + runtime.token
         });
@@ -57,7 +56,7 @@ export class WorkerTaskRunner {
     }
 
     public executeTask(task) {
-        
+
     }
 
     public heartbeat() {

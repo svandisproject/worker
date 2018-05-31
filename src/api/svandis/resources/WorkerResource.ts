@@ -16,6 +16,7 @@ export class WorkerResource extends SecuredResource {
     }
 
     public heartbeat(): Observable<AxiosResponse<any>> {
-        return this.httpService.post(AppConfig.API_URL + '/worker/heartbeat', null, this.getSecuredRequestConfig());
+        return this.httpService
+            .post(AppConfig.API_URL + '/worker/heartbeat', null, this.getSecuredRequestConfig());
     }
 }
