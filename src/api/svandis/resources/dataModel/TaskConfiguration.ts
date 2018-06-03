@@ -1,5 +1,5 @@
 export interface TaskConfiguration {
-    type: string;
+    type: 'web' | 'twitter' | 'facebook';
     config: {
         url: string,
         titleSelector: string,

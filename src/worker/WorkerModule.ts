@@ -1,14 +1,18 @@
-import {Logger, Module, OnModuleInit} from "@nestjs/common";
+import {HttpModule, Logger, Module, OnModuleInit} from "@nestjs/common";
 import {WorkerTaskRunner} from "./WorkerTaskRunner";
 import {SvandisApiModule} from "../api/svandis/SvandisApiModule";
 import {LoggerMessage} from "../common/logger/LoggerMessage";
+import {ContentExtractorService} from "./services/ContentExtractorService";
+
 
 @Module({
     imports: [
+        HttpModule,
         SvandisApiModule
     ],
     providers: [
-        WorkerTaskRunner
+        WorkerTaskRunner,
+        ContentExtractorService
     ],
     exports: [
         WorkerTaskRunner

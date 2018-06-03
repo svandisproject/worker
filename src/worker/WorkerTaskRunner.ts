@@ -7,11 +7,15 @@ import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
 import {Observable, throwError} from "rxjs/index";
 import {AppConfig} from "../config/AppConfig";
 import * as io from 'socket.io-client';
+import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
+import {ContentExtractorService} from "./services/ContentExtractorService";
+import {WebCrawlerService} from "../crawler/sevices/WebCrawlerService";
 
 @Injectable()
 export class WorkerTaskRunner {
 
-    constructor(private workerResource: WorkerResource) {
+    constructor(private workerResource: WorkerResource,
+                private extractorService: ContentExtractorService) {
     }
 
     /**
@@ -49,14 +53,19 @@ export class WorkerTaskRunner {
         this.heartbeat();
         Logger.log("Worker started".green);
         socket.on('task-config-update', (task) => {
-            Logger.log(task);
             Logger.log("Crawling task received");
             this.executeTask(task);
         });
     }
 
-    public executeTask(task) {
-
+    public executeTask(task: TaskConfiguration) {
+        switch (task.type) {
+            case 'web':
+                new WebCrawlerService(task).execute().subscribe((url: string) => {
+                    this.extractorService.extract(url);
+                });
+                break;
+        }
     }
 
     public heartbeat() {
