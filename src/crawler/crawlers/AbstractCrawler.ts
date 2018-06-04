@@ -15,7 +15,3 @@ export abstract class AbstractCrawler {
     }
 
 }
-
-// this.$ = cheerio.load(buffer.toString("utf8"));
-// crawler.discoverResources =
-//     (buffer) => this.crawlForPostLinks(buffer);

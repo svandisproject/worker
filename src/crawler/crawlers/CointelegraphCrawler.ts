@@ -1,5 +1,6 @@
 import {AbstractCrawler} from "./AbstractCrawler";
 import {Observable} from "rxjs/index";
+import * as cheerio from 'cheerio';
 
 export class CointelegraphCrawler extends AbstractCrawler {
     private readonly postsUrl = '/category/latest';
