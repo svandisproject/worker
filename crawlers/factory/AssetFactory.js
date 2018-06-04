@@ -7,7 +7,6 @@ class AssetFactory {
             circulating_supply: coin.circulating_supply,
             total_supply: coin.total_supply,
             max_supply: coin.max_supply,
-            price_usd: coin.quotes.USD.price,
             volume_usd_day: coin.quotes.USD.volume_24h,
             market_cap_usd: coin.quotes.USD.market_cap,
             percent_change_hour_usd: coin.quotes.USD.percent_change_1h,
