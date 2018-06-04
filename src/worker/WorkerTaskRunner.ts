@@ -9,7 +9,6 @@ import {AppConfig} from "../config/AppConfig";
 import * as io from 'socket.io-client';
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
-import {WebCrawlerService} from "../crawler/sevices/WebCrawlerService";
 
 @Injectable()
 export class WorkerTaskRunner {
@@ -59,13 +58,13 @@ export class WorkerTaskRunner {
     }
 
     public executeTask(task: TaskConfiguration) {
-        switch (task.type) {
-            case 'web':
-                new WebCrawlerService(task).execute().subscribe((url: string) => {
-                    this.extractorService.extract(url);
-                });
-                break;
-        }
+        // switch (task.type) {
+        //     case 'web':
+        //         new WebCrawlerFactory(task).build().subscribe((url: string) => {
+        //             this.extractorService.extract(url);
+        //         });
+        //         break;
+        // }
     }
 
     public heartbeat() {
