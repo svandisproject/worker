@@ -1,5 +1,4 @@
 export const AppConfig = {
     API_URL: 'https://svandis-api.herokuapp.com',
-    SOCKET_SERVER_URL: 'https://svandis-socket.herokuapp.com',
-    SOCKET_SERVER_PORT: 7777
+    SOCKET_SERVER_URL: 'ws://svandis-socket.herokuapp.com',
 };

@@ -43,7 +43,7 @@ export class WorkerTaskRunner {
 
     public startWorker(): void {
         const runtime = require(process.env.PWD + '/runtime.json');
-        const socket = io(AppConfig.SOCKET_SERVER_URL + ':' + AppConfig.SOCKET_SERVER_PORT, {
+        const socket = io(AppConfig.SOCKET_SERVER_URL, {
             forceNew: true,
             query: 'secret=' + runtime.token
         });
