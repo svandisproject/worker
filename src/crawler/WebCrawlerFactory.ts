@@ -1,18 +1,12 @@
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
-import {EMPTY, Observable} from "rxjs/index";
-import {CointelegraphCrawler} from "./crawlers/CointelegraphCrawler";
+import {Observable} from "rxjs/index";
+import {GeneralWebCrawler} from "./crawlers/GeneralWebCrawler";
 
 export class WebCrawlerFactory {
     constructor(private taskConfig: TaskConfiguration) {
     }
 
     public build(): Observable<string> {
-
-        switch (this.taskConfig.config.url) {
-            case 'https://cointelegraph.com':
-                return new CointelegraphCrawler(this.taskConfig.config.url).getLinks();
-            default:
-                return EMPTY;
-        }
+        return new GeneralWebCrawler(this.taskConfig).getLinks();
     }
 }
