@@ -1,12 +1,11 @@
 import {AbstractCrawler} from "./AbstractCrawler";
 import {Observable} from "rxjs/index";
 import * as cheerio from 'cheerio';
+import {TaskConfiguration} from "../../api/svandis/resources/dataModel/TaskConfiguration";
 
-export class CointelegraphCrawler extends AbstractCrawler {
-    private readonly postsUrl = '/category/latest';
-    private readonly linkSelector = '.category-content .category-item a';
+export class GeneralWebCrawler extends AbstractCrawler {
 
-    constructor(private targetUrl: string) {
+    constructor(private task: TaskConfiguration) {
         super();
     }
 
@@ -22,11 +21,11 @@ export class CointelegraphCrawler extends AbstractCrawler {
     }
 
     protected crawlForLinks(): any {
-        const crawler = this.configureCrawler(this.targetUrl + this.postsUrl);
+        const crawler = this.configureCrawler(this.task.config.url);
         crawler.discoverResources = (buffer) => {
             const $: CheerioStatic = cheerio.load(buffer.toString("utf8"));
 
-            return $(this.linkSelector)
+            return $(this.task.config.linkSelector)
                 .map((index, element) => $(element).attr("href")).get();
         };
 

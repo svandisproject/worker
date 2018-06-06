@@ -4,7 +4,6 @@ import {SvandisApiModule} from "../api/svandis/SvandisApiModule";
 import {LoggerMessage} from "../common/logger/LoggerMessage";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 
-
 @Module({
     imports: [
         HttpModule,
