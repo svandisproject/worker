@@ -5,17 +5,26 @@ import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
 import {Observable, throwError} from "rxjs/index";
-import {AppConfig} from "../config/AppConfig";
-import * as io from 'socket.io-client';
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {WebCrawlerFactory} from "../crawler/WebCrawlerFactory";
+import {SocketService} from "../common/socket/SocketService";
+import Socket = SocketIOClient.Socket;
 
 @Injectable()
 export class WorkerTaskRunner {
+    private readonly SOCKET_EVENTS = {
+        CONNECT: 'connect',
+        TASK_UPDATE: 'task-config-update',
+        VALIDATE: 'validate',
+        VALIDATE_COMPLETE: 'validate-complete'
+    };
+    private socket: Socket;
 
     constructor(private workerResource: WorkerResource,
+                private socketService: SocketService,
                 private extractorService: ContentExtractorService) {
+        this.socket = this.socketService.getSocket();
     }
 
     /**
@@ -42,17 +51,11 @@ export class WorkerTaskRunner {
     }
 
     public startWorker(): void {
-        const runtime = require(process.env.PWD + '/runtime.json');
-        const socket = io(AppConfig.SOCKET_SERVER_URL, {
-            forceNew: true,
-            query: 'secret=' + runtime.token
-        });
-
-        socket.on('connect', () => Logger.log(colors.yellow("Connected to socket server")));
+        this.socket.on(this.SOCKET_EVENTS.CONNECT, () => Logger.log(colors.yellow("Connected to socket server")));
 
         this.heartbeat();
         Logger.log("Worker started".green);
-        socket.on('task-config-update', (task) => {
+        this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (task) => {
             Logger.log("Crawling task received");
             this.executeTask(task);
         });
@@ -62,7 +65,15 @@ export class WorkerTaskRunner {
         switch (task.type) {
             case 'web':
                 new WebCrawlerFactory(task).build().subscribe((url: string) => {
-                    this.extractorService.extract(url);
+
+                    this.socket.emit(
+                        this.SOCKET_EVENTS.VALIDATE,
+                        {url: url}
+                    );
+                    this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (response) => {
+                        console.log(response);
+                    });
+                    // this.extractorService.extract(url);
                 });
                 break;
         }
