@@ -19,6 +19,8 @@ export class WorkerTaskRunner {
         VALIDATE: 'validate',
         VALIDATE_COMPLETE: 'validate-complete'
     };
+    private VALIDATION_THRESHOLD: number = 1;
+
     private socket: Socket;
 
     constructor(private workerResource: WorkerResource,
@@ -70,10 +72,14 @@ export class WorkerTaskRunner {
                         this.SOCKET_EVENTS.VALIDATE,
                         {url: url}
                     );
-                    this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (response) => {
-                        console.log(response);
+                    this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (response: { confirmationCount: number }) => {
+                        if (response.confirmationCount && response.confirmationCount >= this.VALIDATION_THRESHOLD) {
+                            Logger.log('url confirmed , no extraction');
+                        } else {
+                            Logger.log('confirmation to low, extracting');
+                            this.extractorService.extract(url);
+                        }
                     });
-                    // this.extractorService.extract(url);
                 });
                 break;
         }
