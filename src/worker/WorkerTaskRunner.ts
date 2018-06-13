@@ -53,39 +53,16 @@ export class WorkerTaskRunner {
     }
 
     public startWorker(): void {
-        this.socket.on(this.SOCKET_EVENTS.CONNECT, () => Logger.log(colors.yellow("Connected to socket server")));
+        this.socket.on(this.SOCKET_EVENTS.CONNECT, () => {
+            Logger.log(colors.yellow("Connected to socket server, worker started"));
 
-        this.heartbeat();
-        Logger.log("Worker started".green);
-        this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (task) => {
-            Logger.log("Crawling task received");
-            this.executeTask(task);
+            this.heartbeat();
+            this.listenOnTaskUpdate();
+            this.listenOnUrlValidation();
         });
     }
 
-    public executeTask(task: TaskConfiguration) {
-        switch (task.type) {
-            case 'web':
-                new WebCrawlerFactory(task).build().subscribe((url: string) => {
-
-                    this.socket.emit(
-                        this.SOCKET_EVENTS.VALIDATE,
-                        {url: url}
-                    );
-                    this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (response: { confirmationCount: number }) => {
-                        if (response.confirmationCount && response.confirmationCount >= this.VALIDATION_THRESHOLD) {
-                            Logger.log('url confirmed , no extraction');
-                        } else {
-                            Logger.log('confirmation to low, extracting');
-                            this.extractorService.extract(url);
-                        }
-                    });
-                });
-                break;
-        }
-    }
-
-    public heartbeat() {
+    private heartbeat() {
         setInterval(() => {
             this.workerResource.heartbeat()
                 .subscribe(
@@ -99,6 +76,40 @@ export class WorkerTaskRunner {
         const token = response.data.token;
         fs.writeFileSync(process.env.PWD + '/runtime.json', JSON.stringify({token: token}));
         Logger.log(colors.bgGreen.black('Successfully registered worker'));
+    }
+
+    private listenOnTaskUpdate() {
+        this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (task) => {
+            Logger.log("Crawling task received");
+            this.executeTask(task);
+        });
+    }
+
+    private listenOnUrlValidation(): void {
+        this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res) => {
+            Logger.log(res.url);
+
+            if (res.hash) {
+                Logger.log('url confirmed , no extraction');
+            } else {
+                Logger.log('confirmation to low, extracting');
+                this.extractorService.extract(res.url);
+            }
+        });
+    }
+
+    private executeTask(task: TaskConfiguration) {
+        switch (task.type) {
+            case 'web':
+                new WebCrawlerFactory(task)
+                    .build()
+                    .subscribe((url: string) => {
+                        if (url !== task.config.url) {
+                            this.socket.emit(this.SOCKET_EVENTS.VALIDATE, {url: url});
+                        }
+                    });
+                break;
+        }
     }
 
     private handleRegistrationError(err: AxiosError) {

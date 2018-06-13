@@ -9,13 +9,13 @@ export class SocketService {
 
     constructor() {
         try {
-            const token = require(process.env.PWD + '/runtime.json').token;
+            const token = require((process.env.PWD || process.cwd()) + '/runtime.json').token;
             this.socket = io(AppConfig.SOCKET_SERVER_URL, {
                 forceNew: true,
                 query: 'secret=' + token
             });
         } catch (error) {
-            Logger.log('Error in SocketService, runtime not yet set');
+            Logger.error('Error in SocketService, runtime not yet set');
         }
 
     }

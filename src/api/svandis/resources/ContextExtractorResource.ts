@@ -1,11 +1,11 @@
-import {HttpService, Injectable, Logger} from "@nestjs/common";
+import {HttpService, Injectable} from "@nestjs/common";
 import {Observable} from "rxjs/index";
 import {SecuredResource} from "./SecuredResource";
 
 @Injectable()
 export class ContextExtractorResource extends SecuredResource {
 
-    private readonly URL = 'https://svandis-ce.herokuapp.com/extract';
+    private readonly URL = 'https://svandis-content-exteactor.herokuapp.com/extract';
 
     constructor(private httpService: HttpService) {
         super();

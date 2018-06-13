@@ -24,11 +24,16 @@ export class GeneralWebCrawler extends AbstractCrawler {
         const crawler = this.configureCrawler(this.task.config.url);
         crawler.discoverResources = (buffer) => {
             const $: CheerioStatic = cheerio.load(buffer.toString("utf8"));
+            const selector: string = this.task.config.linkSelector;
 
-            return $(this.task.config.linkSelector)
-                .map((index, element) => $(element).attr("href")).get();
+            return !this.isInvalidSelector(selector) ?
+                $(selector).map((index, element) => $(element).attr("href")).get() : null;
         };
 
         return crawler;
+    }
+
+    private isInvalidSelector(selector: string): boolean {
+        return /class=/.test(selector);
     }
 }
