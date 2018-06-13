@@ -5,17 +5,28 @@ import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
 import {Observable, throwError} from "rxjs/index";
-import {AppConfig} from "../config/AppConfig";
-import * as io from 'socket.io-client';
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {WebCrawlerFactory} from "../crawler/WebCrawlerFactory";
+import {SocketService} from "../common/socket/SocketService";
+import Socket = SocketIOClient.Socket;
 
 @Injectable()
 export class WorkerTaskRunner {
+    private readonly SOCKET_EVENTS = {
+        CONNECT: 'connect',
+        TASK_UPDATE: 'task-config-update',
+        VALIDATE: 'validate',
+        VALIDATE_COMPLETE: 'validate-complete'
+    };
+    private VALIDATION_THRESHOLD: number = 1;
+
+    private socket: Socket;
 
     constructor(private workerResource: WorkerResource,
+                private socketService: SocketService,
                 private extractorService: ContentExtractorService) {
+        this.socket = this.socketService.getSocket();
     }
 
     /**
@@ -42,33 +53,16 @@ export class WorkerTaskRunner {
     }
 
     public startWorker(): void {
-        const runtime = require(process.env.PWD + '/runtime.json');
-        const socket = io(AppConfig.SOCKET_SERVER_URL, {
-            forceNew: true,
-            query: 'secret=' + runtime.token
-        });
+        this.socket.on(this.SOCKET_EVENTS.CONNECT, () => {
+            Logger.log(colors.yellow("Connected to socket server, worker started"));
 
-        socket.on('connect', () => Logger.log(colors.yellow("Connected to socket server")));
-
-        this.heartbeat();
-        Logger.log("Worker started".green);
-        socket.on('task-config-update', (task) => {
-            Logger.log("Crawling task received");
-            this.executeTask(task);
+            this.heartbeat();
+            this.listenOnTaskUpdate();
+            this.listenOnUrlValidation();
         });
     }
 
-    public executeTask(task: TaskConfiguration) {
-        switch (task.type) {
-            case 'web':
-                new WebCrawlerFactory(task).build().subscribe((url: string) => {
-                    this.extractorService.extract(url);
-                });
-                break;
-        }
-    }
-
-    public heartbeat() {
+    private heartbeat() {
         setInterval(() => {
             this.workerResource.heartbeat()
                 .subscribe(
@@ -82,6 +76,40 @@ export class WorkerTaskRunner {
         const token = response.data.token;
         fs.writeFileSync(process.env.PWD + '/runtime.json', JSON.stringify({token: token}));
         Logger.log(colors.bgGreen.black('Successfully registered worker'));
+    }
+
+    private listenOnTaskUpdate() {
+        this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (task) => {
+            Logger.log("Crawling task received");
+            this.executeTask(task);
+        });
+    }
+
+    private listenOnUrlValidation(): void {
+        this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res) => {
+            Logger.log(res.url);
+
+            if (res.hash) {
+                Logger.log('url confirmed , no extraction');
+            } else {
+                Logger.log('confirmation to low, extracting');
+                this.extractorService.extract(res.url);
+            }
+        });
+    }
+
+    private executeTask(task: TaskConfiguration) {
+        switch (task.type) {
+            case 'web':
+                new WebCrawlerFactory(task)
+                    .build()
+                    .subscribe((url: string) => {
+                        if (url !== task.config.url) {
+                            this.socket.emit(this.SOCKET_EVENTS.VALIDATE, {url: url});
+                        }
+                    });
+                break;
+        }
     }
 
     private handleRegistrationError(err: AxiosError) {

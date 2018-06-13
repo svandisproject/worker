@@ -6,9 +6,9 @@ export class SecuredResource {
 
     constructor() {
         try {
-            this.token = require(process.env.PWD + '/runtime.json').token;
+            this.token = require((process.env.PWD || process.cwd()) + '/runtime.json').token;
         } catch (error) {
-            Logger.log('runtime not yet set');
+            Logger.error('Error in SecuredResource, runtime not yet set');
         }
     }
 

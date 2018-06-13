@@ -3,10 +3,12 @@ import {WorkerTaskRunner} from "./WorkerTaskRunner";
 import {SvandisApiModule} from "../api/svandis/SvandisApiModule";
 import {LoggerMessage} from "../common/logger/LoggerMessage";
 import {ContentExtractorService} from "./services/ContentExtractorService";
+import {AppCommonModule} from "../common/AppCommonModule";
 
 @Module({
     imports: [
         HttpModule,
+        AppCommonModule,
         SvandisApiModule
     ],
     providers: [
