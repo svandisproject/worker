@@ -6,7 +6,7 @@ export class WebCrawlerFactory {
     constructor(private taskConfig: TaskConfiguration) {
     }
 
-    public build(): Observable<string> {
+    public build(): Observable<string[]> {
         return new GeneralWebCrawler(this.taskConfig).getLinks();
     }
 }

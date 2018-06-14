@@ -9,12 +9,13 @@ export class GeneralWebCrawler extends AbstractCrawler {
         super();
     }
 
-    public getLinks(): Observable<string> {
+    public getLinks(): Observable<string[]> {
         const crawler = this.crawlForLinks();
 
         return Observable.create((observer) => {
-            crawler.on('fetchcomplete', (queueItem) => {
-                observer.next(queueItem.url);
+            crawler.on('discoverycomplete', (queItem, resource) => {
+                observer.next(resource);
+                observer.complete();
             });
             crawler.start();
         });

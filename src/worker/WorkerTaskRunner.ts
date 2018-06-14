@@ -1,6 +1,6 @@
 import {Injectable, Logger} from "@nestjs/common";
 import {WorkerResource} from "../api/svandis/resources/WorkerResource";
-import {catchError, map, tap} from "rxjs/internal/operators";
+import {catchError, finalize, map, tap} from "rxjs/internal/operators";
 import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
@@ -9,6 +9,7 @@ import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfigur
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {WebCrawlerFactory} from "../crawler/WebCrawlerFactory";
 import {SocketService} from "../common/socket/SocketService";
+import {fromArray} from "rxjs/internal/observable/fromArray";
 import Socket = SocketIOClient.Socket;
 
 @Injectable()
@@ -22,6 +23,7 @@ export class WorkerTaskRunner {
     private VALIDATION_THRESHOLD: number = 1;
 
     private socket: Socket;
+    private isWorkerBusy: boolean = false;
 
     constructor(private workerResource: WorkerResource,
                 private socketService: SocketService,
@@ -79,6 +81,7 @@ export class WorkerTaskRunner {
     }
 
     private listenOnTaskUpdate() {
+        // TODO: Send task array instead of a task
         this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (task) => {
             Logger.log("Crawling task received");
             this.executeTask(task);
@@ -86,14 +89,14 @@ export class WorkerTaskRunner {
     }
 
     private listenOnUrlValidation(): void {
-        this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res) => {
-            Logger.log(res.url);
-
-            if (res.hash) {
-                Logger.log('url confirmed , no extraction');
-            } else {
-                Logger.log('confirmation to low, extracting');
-                this.extractorService.extract(res.url);
+        this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res: { urls: string[] }) => {
+            if (res.urls) {
+                fromArray(res.urls)
+                    .pipe(finalize(() => this.isWorkerBusy = false))
+                    .subscribe((url) => {
+                        Logger.log('Extracting...');
+                        this.extractorService.extract(url);
+                    });
             }
         });
     }
@@ -103,10 +106,8 @@ export class WorkerTaskRunner {
             case 'web':
                 new WebCrawlerFactory(task)
                     .build()
-                    .subscribe((url: string) => {
-                        if (url !== task.config.url) {
-                            this.socket.emit(this.SOCKET_EVENTS.VALIDATE, {url: url});
-                        }
+                    .subscribe((urls: string[]) => {
+                        this.socket.emit(this.SOCKET_EVENTS.VALIDATE, {urls: urls, baseUrl: task.config.url});
                     });
                 break;
         }
