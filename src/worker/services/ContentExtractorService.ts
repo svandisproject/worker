@@ -7,7 +7,6 @@ export class ContentExtractorService {
     }
 
     public extract(targetUrl: string): void {
-        Logger.log('Extracting...');
         this.extractorResource.extract(targetUrl)
             .subscribe(null, (err) => this.handleError(err));
     }

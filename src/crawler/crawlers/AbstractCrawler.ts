@@ -2,7 +2,7 @@ import {Observable} from "rxjs/index";
 
 export abstract class AbstractCrawler {
 
-    abstract getLinks(): Observable<string>;
+    abstract getLinks(): Observable<string[]>;
 
     protected abstract crawlForLinks(): any;
 
