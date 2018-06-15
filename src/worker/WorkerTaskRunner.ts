@@ -76,7 +76,7 @@ export class WorkerTaskRunner {
 
     private saveTokenToFile(response) {
         const token = response.data.token;
-        fs.writeFileSync(process.env.PWD + '/runtime.json', JSON.stringify({token: token}));
+        fs.writeFileSync((process.env.PWD || process.cwd()) + '/runtime.json', JSON.stringify({token: token}));
         Logger.log(colors.bgGreen.black('Successfully registered worker'));
     }
 
