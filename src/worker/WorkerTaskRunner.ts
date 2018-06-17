@@ -1,15 +1,15 @@
-import {Injectable, Logger} from "@nestjs/common";
+import {HttpService, Injectable, Logger} from "@nestjs/common";
 import {WorkerResource} from "../api/svandis/resources/WorkerResource";
-import {catchError, finalize, map, tap} from "rxjs/internal/operators";
+import {catchError, finalize, map, mergeMap, tap} from "rxjs/internal/operators";
 import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
 import {Observable, throwError} from "rxjs/index";
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
-import {WebCrawlerFactory} from "../crawler/WebCrawlerFactory";
 import {SocketService} from "../common/socket/SocketService";
 import {fromArray} from "rxjs/internal/observable/fromArray";
+import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
 import Socket = SocketIOClient.Socket;
 
 @Injectable()
@@ -20,13 +20,14 @@ export class WorkerTaskRunner {
         VALIDATE: 'validate',
         VALIDATE_COMPLETE: 'validate-complete'
     };
-    private VALIDATION_THRESHOLD: number = 1;
 
     private socket: Socket;
     private isWorkerBusy: boolean = false;
 
     constructor(private workerResource: WorkerResource,
                 private socketService: SocketService,
+                private webCrawler: GeneralWebCrawler,
+                private httpService: HttpService,
                 private extractorService: ContentExtractorService) {
         this.socket = this.socketService.getSocket();
     }
@@ -92,11 +93,20 @@ export class WorkerTaskRunner {
         this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res: { urls: string[] }) => {
             if (res.urls) {
                 fromArray(res.urls)
-                    .pipe(finalize(() => this.isWorkerBusy = false))
-                    .subscribe((url) => {
-                        Logger.log('Extracting...');
-                        this.extractorService.extract(url);
-                    });
+                    .pipe(
+                        mergeMap((url) => {
+                            return this.httpService.get(url)
+                                .pipe(map((response) => {
+                                    return {url: url, pageHtml: response.data};
+                                }));
+                        }),
+                        mergeMap((payload: { url: string, pageHtml: string }) => {
+                            Logger.log('Extracting...');
+                            return this.extractorService.extract(payload);
+                        }),
+                        finalize(() => this.isWorkerBusy = false)
+                    )
+                    .subscribe(null, (error) => Logger.error(error));
             }
         });
     }
@@ -104,8 +114,8 @@ export class WorkerTaskRunner {
     private executeTask(task: TaskConfiguration) {
         switch (task.type) {
             case 'web':
-                new WebCrawlerFactory(task)
-                    .build()
+                this.webCrawler
+                    .getLinks(task)
                     .subscribe((urls: string[]) => {
                         this.socket.emit(this.SOCKET_EVENTS.VALIDATE, {urls: urls, baseUrl: task.config.url});
                     });
