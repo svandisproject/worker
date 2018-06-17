@@ -96,14 +96,17 @@ export class WorkerTaskRunner {
                     .pipe(
                         mergeMap((url) => {
                             return this.httpService.get(url)
-                                .pipe(map((response) => response.data));
+                                .pipe(map((response) => {
+                                    return {url: url, pageHtml: response.data};
+                                }));
+                        }),
+                        mergeMap((payload: { url: string, pageHtml: string }) => {
+                            Logger.log('Extracting...');
+                            return this.extractorService.extract(payload);
                         }),
                         finalize(() => this.isWorkerBusy = false)
                     )
-                    .subscribe((html) => {
-                        Logger.log('Extracting...');
-                        // this.extractorService.extract(url);
-                    });
+                    .subscribe(null, (error) => Logger.error(error));
             }
         });
     }

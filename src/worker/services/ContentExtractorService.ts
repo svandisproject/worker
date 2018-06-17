@@ -1,17 +1,13 @@
-import {Injectable, Logger} from "@nestjs/common";
+import {Injectable} from "@nestjs/common";
 import {ContextExtractorResource} from "../../api/svandis/resources/ContextExtractorResource";
+import {Observable} from "rxjs/internal/Observable";
 
 @Injectable()
 export class ContentExtractorService {
     constructor(private extractorResource: ContextExtractorResource) {
     }
 
-    public extract(targetUrl: string): void {
-        this.extractorResource.extract(targetUrl)
-            .subscribe(null, (err) => this.handleError(err));
-    }
-
-    private handleError(err): void {
-        Logger.error(err);
+    public extract(payload: { url: string, pageHtml: string }): Observable<any> {
+        return this.extractorResource.extract(payload);
     }
 }

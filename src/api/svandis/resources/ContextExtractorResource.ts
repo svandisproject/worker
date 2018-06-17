@@ -11,10 +11,11 @@ export class ContextExtractorResource extends SecuredResource {
         super();
     }
 
-    public extract(targetUrl: string): Observable<any> {
+    public extract(payload: { url: string, pageHtml: string }): Observable<any> {
         return this.httpService.post(this.URL, {
-            url: targetUrl,
-            token: this.getToken()
+            url: payload.url,
+            token: this.getToken(),
+            pageHtml: payload.pageHtml
         });
     }
 }
