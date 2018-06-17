@@ -1,16 +1,14 @@
-import {AbstractCrawler} from "./AbstractCrawler";
-import {Observable} from "rxjs/index";
+import {AbstractCrawler} from "../AbstractCrawler";
 import * as cheerio from 'cheerio';
 import {TaskConfiguration} from "../../api/svandis/resources/dataModel/TaskConfiguration";
+import {Observable} from "rxjs/internal/Observable";
+import {Injectable} from "@nestjs/common";
 
+@Injectable()
 export class GeneralWebCrawler extends AbstractCrawler {
 
-    constructor(private task: TaskConfiguration) {
-        super();
-    }
-
-    public getLinks(): Observable<string[]> {
-        const crawler = this.crawlForLinks();
+    public getLinks(task: TaskConfiguration): Observable<string[]> {
+        const crawler = this.crawlForLinks(task);
 
         return Observable.create((observer) => {
             crawler.on('discoverycomplete', (queItem, resource) => {
@@ -21,11 +19,11 @@ export class GeneralWebCrawler extends AbstractCrawler {
         });
     }
 
-    protected crawlForLinks(): any {
-        const crawler = this.configureCrawler(this.task.config.url);
+    protected crawlForLinks(task: TaskConfiguration): any {
+        const crawler = this.configureCrawler(task.config.url);
         crawler.discoverResources = (buffer) => {
             const $: CheerioStatic = cheerio.load(buffer.toString("utf8"));
-            const selector: string = this.task.config.linkSelector;
+            const selector: string = task.config.linkSelector;
 
             return !this.isInvalidSelector(selector) ?
                 $(selector).map((index, element) => $(element).attr("href")).get() : null;
