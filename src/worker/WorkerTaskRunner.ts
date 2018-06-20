@@ -143,7 +143,8 @@ export class WorkerTaskRunner {
                     if (_.isEmpty(res.urls)) {
                         return EMPTY;
                     }
-
+                    Logger.log('Urls for extraction: ');
+                    console.log(res.urls);
                     return fromArray(res.urls)
                         .pipe(
                             switchMap((url) => this.extractorService.getHtml(url)),
