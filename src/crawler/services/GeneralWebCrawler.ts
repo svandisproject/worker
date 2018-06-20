@@ -8,6 +8,7 @@ import {Injectable} from "@nestjs/common";
 export class GeneralWebCrawler extends AbstractCrawler {
 
     public getLinks(task: TaskConfiguration): Observable<string[]> {
+
         const crawler = this.crawlForLinks(task);
 
         return Observable.create((observer) => {
