@@ -4,7 +4,7 @@ import {catchError, filter, finalize, map, switchMap, tap} from "rxjs/internal/o
 import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
-import {EMPTY, from, Observable, throwError} from "rxjs/index";
+import {EMPTY, from, Observable, Subscription, throwError, timer} from "rxjs/index";
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {SocketService} from "../common/socket/SocketService";
@@ -17,6 +17,7 @@ import Socket = SocketIOClient.Socket;
 export class WorkerTaskRunner {
     private readonly SOCKET_EVENTS = {
         CONNECT: 'connect',
+        DISCONNECT: 'disconnect',
         TASK_UPDATE: 'task-config-update',
         VALIDATE: 'validate',
         VALIDATE_COMPLETE: 'validate-complete'
@@ -24,6 +25,8 @@ export class WorkerTaskRunner {
 
     private socket: Socket;
     private isWorkerBusy: boolean = false;
+    private activeTaskSubscription: Subscription;
+    private activeHeartbeatSubscription: Subscription;
 
     constructor(private workerResource: WorkerResource,
                 private socketService: SocketService,
@@ -60,24 +63,33 @@ export class WorkerTaskRunner {
         this.socket.on(this.SOCKET_EVENTS.CONNECT, () => {
             Logger.log(colors.yellow("Connected to socket server, worker started"));
 
-            this.heartbeat();
-            this.listenOnTaskUpdate();
+            this.activeHeartbeatSubscription = this.heartbeat().subscribe(
+                () => Logger.log(colors.green('Heartbeat send')),
+                (error) => Logger.error('Heartbeat error ' + error)
+            );
+
+            this.onTaskUpdate();
+        });
+
+        this.socket.on(this.SOCKET_EVENTS.DISCONNECT, () => {
+            Logger.log('Connection lost, unsubscribe tasks');
+            this.activeHeartbeatSubscription.unsubscribe();
+            this.activeTaskSubscription.unsubscribe();
         });
     }
 
-    private listenOnTaskUpdate() {
-        // TODO: Send task array instead of a task
+    private onTaskUpdate() {
         this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (tasks: TaskConfiguration[]) => {
             if (!this.isWorkerBusy) {
                 Logger.log("Crawling tasks received");
-                this.executeTask(tasks);
+                this.activeTaskSubscription = this.executeTask(tasks);
             }
         });
     }
 
-    private executeTask(tasks: TaskConfiguration[]) {
+    private executeTask(tasks: TaskConfiguration[]): Subscription {
         this.isWorkerBusy = true;
-        from(tasks)
+        const subscription = from(tasks)
             .pipe(
                 filter((task) => task.type === 'web'),
                 switchMap((task: TaskConfiguration) => {
@@ -86,11 +98,13 @@ export class WorkerTaskRunner {
                 finalize(() => {
                     Logger.log('Tasks finished, releasing worker');
                     this.isWorkerBusy = false;
+                    subscription.unsubscribe();
                 })
             )
             .subscribe(null, (error) => {
                 console.error(error);
             });
+        return subscription;
     }
 
     private sendUrlsForValidation(urls: string[], task): Observable<{ urls: string[] }> {
@@ -119,14 +133,11 @@ export class WorkerTaskRunner {
         return throwError(err);
     }
 
-    private heartbeat() {
-        setInterval(() => {
-            this.workerResource.heartbeat()
-                .subscribe(
-                    () => Logger.log(colors.green('Heartbeat send')),
-                    (error) => Logger.error('Heartbeat error ' + error)
-                );
-        }, 60000);
+    private heartbeat(): Observable<any> {
+        return timer(0, 60000)
+            .pipe(
+                switchMap(() => this.workerResource.heartbeat())
+            );
     }
 
     private handleWebTask(task): Observable<any> {
