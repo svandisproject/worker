@@ -100,7 +100,7 @@ export class WorkerTaskRunner {
             .pipe(
                 map((i) => tasks[i]),
                 delayWhen((task) => {
-                    if (task.type === 'web') {
+                    if (_.get(task, 'type') === 'web') {
                         return this.handleWebTask(task);
                     }
                     return EMPTY;
