@@ -4,7 +4,6 @@ import {SvandisApiModule} from "../api/svandis/SvandisApiModule";
 import {LoggerMessage} from "../common/logger/LoggerMessage";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {AppCommonModule} from "../common/AppCommonModule";
-import {WebCrawlerFactory} from "../crawler/WebCrawlerFactory";
 import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
 
 @Module({

@@ -3,17 +3,22 @@ import * as cheerio from 'cheerio';
 import {TaskConfiguration} from "../../api/svandis/resources/dataModel/TaskConfiguration";
 import {Observable} from "rxjs/internal/Observable";
 import {Injectable} from "@nestjs/common";
+import * as _ from "lodash";
 
 @Injectable()
 export class GeneralWebCrawler extends AbstractCrawler {
 
     public getLinks(task: TaskConfiguration): Observable<string[]> {
-
+        console.log('get links received');
         const crawler = this.crawlForLinks(task);
+        let results = [];
 
         return Observable.create((observer) => {
             crawler.on('discoverycomplete', (queItem, resource) => {
-                observer.next(resource);
+                results = _.concat(results, resource);
+            });
+            crawler.on('complete', () => {
+                observer.next(results);
                 observer.complete();
             });
             crawler.start();
