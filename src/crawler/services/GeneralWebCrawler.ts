@@ -9,7 +9,6 @@ import * as _ from "lodash";
 export class GeneralWebCrawler extends AbstractCrawler {
 
     public getLinks(task: TaskConfiguration): Observable<string[]> {
-        console.log('get links received');
         const crawler = this.crawlForLinks(task);
         let results = [];
 

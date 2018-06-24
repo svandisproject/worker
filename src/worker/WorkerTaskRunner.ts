@@ -1,10 +1,10 @@
 import {HttpService, Injectable, Logger} from "@nestjs/common";
 import {WorkerResource} from "../api/svandis/resources/WorkerResource";
-import {catchError, concatAll, finalize, map, mergeMap, switchMap, tap} from "rxjs/internal/operators";
+import {catchError, delayWhen, finalize, map, mergeMap, switchMap, take, tap} from "rxjs/internal/operators";
 import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
-import {asyncScheduler, EMPTY, from, Observable, Subscription, throwError, timer} from "rxjs/index";
+import {EMPTY, interval, Observable, Subscription, throwError, timer} from "rxjs/index";
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {SocketService} from "../common/socket/SocketService";
@@ -96,14 +96,16 @@ export class WorkerTaskRunner {
 
     private executeTask(tasks: TaskConfiguration[]): Observable<any> {
         this.isWorkerBusy = true;
-        return from(tasks, asyncScheduler)
+        return interval(8000)
             .pipe(
-                mergeMap((task) => {
+                map((i) => tasks[i]),
+                delayWhen((task) => {
                     if (task.type === 'web') {
                         return this.handleWebTask(task);
                     }
                     return EMPTY;
                 }),
+                take(tasks.length),
             );
     }
 
@@ -122,15 +124,16 @@ export class WorkerTaskRunner {
                                 if (_.isEmpty(res.urls)) {
                                     return EMPTY;
                                 }
-
-                                return from(res.urls, asyncScheduler)
+                                return interval(2000)
                                     .pipe(
+                                        map((i) => res.urls[i]),
+
                                         mergeMap((url) => {
                                             return this.extractorService.getHtml(url)
                                                 .pipe(
-                                                    mergeMap((html) => {
+                                                    mergeMap((payload) => {
                                                         Logger.log('Extracting...');
-                                                        return this.extractorService.extract({pageHtml: html, url: url})
+                                                        return this.extractorService.extract(payload)
                                                             .pipe(
                                                                 catchError((err) => {
                                                                     Logger.error(err);
@@ -140,7 +143,7 @@ export class WorkerTaskRunner {
                                                     }),
                                                 );
                                         }),
-                                        concatAll()
+                                        take(res.urls.length)
                                     );
                             }));
                 }),
