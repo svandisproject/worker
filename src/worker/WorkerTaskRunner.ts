@@ -1,38 +1,29 @@
-import {HttpService, Injectable, Logger} from "@nestjs/common";
+import {Injectable, Logger} from "@nestjs/common";
 import {WorkerResource} from "../api/svandis/resources/WorkerResource";
-import {catchError, concatMap, finalize, map, switchMap, take, tap} from "rxjs/internal/operators";
+import {catchError, finalize, map, switchMap, tap} from "rxjs/internal/operators";
 import * as fs from "fs";
 import * as colors from "colors";
 import {AxiosError} from "@nestjs/common/http/interfaces/axios.interfaces";
-import {EMPTY, interval, Observable, Subscription, throwError, timer} from "rxjs/index";
+import {Observable, Subscription, throwError, timer} from "rxjs/index";
 import {TaskConfiguration} from "../api/svandis/resources/dataModel/TaskConfiguration";
-import {ContentExtractorService} from "./services/ContentExtractorService";
 import {SocketService} from "../common/socket/SocketService";
-import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
-import * as _ from "lodash";
+import {SOCKET_EVENTS} from "./SocketEvents";
+import {TaskService} from "./services/TaskService";
 import Socket = SocketIOClient.Socket;
 
 @Injectable()
 export class WorkerTaskRunner {
-    private readonly SOCKET_EVENTS = {
-        CONNECT: 'connect',
-        DISCONNECT: 'disconnect',
-        TASK_UPDATE: 'task-config-update',
-        VALIDATE: 'validate',
-        VALIDATE_COMPLETE: 'validate-complete'
-    };
+    private readonly SOCKET_EVENTS = SOCKET_EVENTS;
+    private readonly TERMINATE_TIMEOUT = 300000;
 
     private socket: Socket;
-    private isWorkerBusy: boolean = false;
 
     private activeTaskSubscription: Subscription;
     private activeHeartbeatSubscription: Subscription;
 
     constructor(private workerResource: WorkerResource,
-                private socketService: SocketService,
-                private webCrawler: GeneralWebCrawler,
-                private httpService: HttpService,
-                private extractorService: ContentExtractorService) {
+                private taskService: TaskService,
+                private socketService: SocketService) {
         this.socket = this.socketService.getSocket();
     }
 
@@ -49,12 +40,8 @@ export class WorkerTaskRunner {
         Logger.log(colors.red('Registering worker'));
         return this.workerResource.register(secret)
             .pipe(
-                tap((response) => {
-                    this.saveTokenToFile(response);
-                }),
-                catchError((err: AxiosError) => {
-                    return this.handleRegistrationError(err);
-                }),
+                tap((response) => this.saveTokenToFile(response)),
+                catchError((err: AxiosError) => this.handleRegistrationError(err)),
                 map(() => true)
             );
     }
@@ -75,103 +62,32 @@ export class WorkerTaskRunner {
         });
 
         this.socket.on(this.SOCKET_EVENTS.DISCONNECT, () => {
-            Logger.log('Connection lost, unsubscribe tasks');
-            if (!this.isWorkerBusy) {
-                this.activeHeartbeatSubscription.unsubscribe();
-                this.activeTaskSubscription.unsubscribe();
-            }
+            this.destroySubscriptions();
         });
+
+        timer(this.TERMINATE_TIMEOUT)
+            .subscribe(() => {
+                Logger.warn('Time for cleanup, terminating process');
+                process.exit(1);
+            });
     }
 
     private onTaskUpdate() {
         this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (tasks: TaskConfiguration[]) => {
-            if (!this.isWorkerBusy) {
+            if (!this.taskService.getIsBusy()) {
                 Logger.log("Crawling tasks received");
-                this.activeTaskSubscription = this.executeTask(tasks)
-                    .pipe(finalize(() => this.isWorkerBusy = false))
+                this.activeTaskSubscription = this.taskService.executeTask(tasks)
+                    .pipe(finalize(() => this.taskService.unsetIsBusy()))
                     .subscribe();
             }
         });
     }
 
-    private executeTask(tasks: TaskConfiguration[]): Observable<any> {
-        this.isWorkerBusy = true;
-        return interval(1000)
+    private heartbeat(): Observable<any> {
+        return timer(0, 60000)
             .pipe(
-                map((i) => tasks[i]),
-                concatMap((task) => {
-                    if (_.get(task, 'type') === 'web') {
-                        return this.handleWebTask(task);
-                    }
-                    return EMPTY;
-                }),
-                take(tasks.length),
+                switchMap(() => this.workerResource.heartbeat())
             );
-    }
-
-    private handleWebTask(task): Observable<any> {
-        return this.webCrawler
-            .getLinks(task)
-            .pipe(
-                concatMap((urls) => {
-                    if (_.isEmpty(urls)) {
-                        Logger.log('No links for extraction found');
-                        return EMPTY;
-                    }
-                    return this.sendUrlsForValidation(urls, task)
-                        .pipe(
-                            concatMap((res) => {
-                                if (_.isEmpty(res.urls)) {
-                                    return EMPTY;
-                                }
-                                return interval(1000)
-                                    .pipe(
-                                        map((i) => res.urls[i]),
-
-                                        concatMap((url) => {
-                                            return this.extractorService.getHtml(url)
-                                                .pipe(
-                                                    concatMap((payload) => {
-                                                        Logger.log('Extracting...');
-                                                        return this.extractorService.extract(payload)
-                                                            .pipe(
-                                                                catchError((err) => {
-                                                                    Logger.error(err);
-                                                                    return EMPTY;
-                                                                })
-                                                            );
-                                                    }),
-                                                );
-                                        }),
-                                        take(res.urls.length)
-                                    );
-                            }));
-                }),
-                catchError((err, caught) => {
-                    Logger.error(err);
-                    return EMPTY;
-                }),
-                finalize(() => console.log('handleWebTask done, go to next'))
-            );
-    }
-
-    private sendUrlsForValidation(urls: string[], task): Observable<{ urls: string[] }> {
-        this.socket.emit(
-            this.SOCKET_EVENTS.VALIDATE,
-            {urls: urls, baseUrl: task.config.url}
-        );
-        return this.onValidationComplete()
-            .pipe(finalize(() => console.log('validation, done')));
-
-    }
-
-    private onValidationComplete(): Observable<{ urls: string[] }> {
-        return Observable.create((observer) => {
-            this.socket.on(this.SOCKET_EVENTS.VALIDATE_COMPLETE, (res: { urls: string[] }) => {
-                observer.next(res);
-                observer.complete();
-            });
-        });
     }
 
     private handleRegistrationError(err: AxiosError) {
@@ -182,15 +98,12 @@ export class WorkerTaskRunner {
         return throwError(err);
     }
 
-    private heartbeat(): Observable<any> {
-        return timer(0, 60000)
-            .pipe(
-                switchMap(() => this.workerResource.heartbeat())
-            );
-    }
-
-    private isLastIndex(index, array: any[]) {
-        return index + 1 === array.length;
+    private destroySubscriptions() {
+        Logger.log('Connection lost, unsubscribe tasks');
+        if (!this.taskService.getIsBusy()) {
+            this.activeHeartbeatSubscription.unsubscribe();
+            this.activeTaskSubscription.unsubscribe();
+        }
     }
 
     private saveTokenToFile(response) {

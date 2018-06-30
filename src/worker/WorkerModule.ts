@@ -5,6 +5,7 @@ import {LoggerMessage} from "../common/logger/LoggerMessage";
 import {ContentExtractorService} from "./services/ContentExtractorService";
 import {AppCommonModule} from "../common/AppCommonModule";
 import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
+import {TaskService} from "./services/TaskService";
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
     ],
     providers: [
         WorkerTaskRunner,
+        TaskService,
         GeneralWebCrawler,
         ContentExtractorService
     ],
