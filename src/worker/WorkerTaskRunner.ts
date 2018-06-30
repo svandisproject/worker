@@ -25,6 +25,7 @@ export class WorkerTaskRunner {
                 private taskService: TaskService,
                 private socketService: SocketService) {
         this.socket = this.socketService.getSocket();
+        process.send('ready');
     }
 
     /**
@@ -68,7 +69,7 @@ export class WorkerTaskRunner {
         timer(this.TERMINATE_TIMEOUT)
             .subscribe(() => {
                 Logger.warn('Time for cleanup, terminating process');
-                process.exit(1);
+                process.exit();
             });
     }
 
