@@ -23,7 +23,7 @@ $ npm run start
 npm run start -- --register=YOUR_SECRET --start=true
 ```
 
-## Running with pm (gracefull start)
+## Running with pm (graceful start)
 
 ```bash
 npm install -g pm2
