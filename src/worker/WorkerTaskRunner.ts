@@ -25,7 +25,6 @@ export class WorkerTaskRunner {
                 private taskService: TaskService,
                 private socketService: SocketService) {
         this.socket = this.socketService.getSocket();
-        process.send('ready');
     }
 
     /**
@@ -71,6 +70,8 @@ export class WorkerTaskRunner {
                 Logger.warn('Time for cleanup, terminating process');
                 process.exit();
             });
+
+        this.sendReadySignal();
     }
 
     private onTaskUpdate() {
@@ -111,5 +112,14 @@ export class WorkerTaskRunner {
         const token = response.data.token;
         fs.writeFileSync((process.env.PWD || process.cwd()) + '/runtime.json', JSON.stringify({token: token}));
         Logger.log(colors.bgGreen.black('Successfully registered worker'));
+    }
+
+    /**
+     * Used for pm2 to that child is ready
+     */
+    private sendReadySignal() {
+        if (process.send) {
+            process.send('ready');
+        }
     }
 }

@@ -22,3 +22,13 @@ $ npm run start
 # register and run worker
 npm run start -- --register=YOUR_SECRET --start=true
 ```
+
+## Running with pm (gracefull start)
+
+```bash
+npm install -g pm2
+cd ./project-root
+npm run prestart:prod
+pm2 start ./dist/main.js --wait-ready
+
+```
