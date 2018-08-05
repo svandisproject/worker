@@ -118,7 +118,7 @@ export class WorkerTaskRunner {
      * Used for pm2 to that child is ready
      */
     private sendReadySignal() {
-        if (process.send) {
+        if (typeof process.send === 'function') {
             process.send('ready');
         }
     }
