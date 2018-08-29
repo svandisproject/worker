@@ -16,7 +16,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "webpack": "webpack --config webpack.config.js"
   },
-  "bin": "./spawner.js",
+  "bin": "dist/main.js",
   "pkg": {
     "scripts": "dist/**/*.js"
   },
