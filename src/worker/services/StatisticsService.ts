@@ -7,7 +7,7 @@ import {Server} from 'socket.io';
 @Injectable()
 export class StatisticsService {
     private urls: string[];
-    private urlsSubject = new BehaviorSubject<string[]>(null);
+    private urlsSubject = new BehaviorSubject<string[]>([]);
     private server: Server;
 
     constructor() {
