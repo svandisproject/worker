@@ -3,12 +3,18 @@ const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
-  entry: ['webpack/hot/poll?1000', './src/main.ts'],
+  entry: ['./src/main.ts'],
   watch: false,
   target: 'node',
   externals: [
     nodeExternals({
-      whitelist: ['webpack/hot/poll?1000'],
+      whitelist: [
+          '@nestjs/core',
+          '@nestjs/common',
+          '@nestjs/websockets',
+          '@nestjs/microservices',
+          'ws'
+      ],
     }),
   ],
   module: {
@@ -23,9 +29,6 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
   },
-  plugins: [
-    new webpack.HotModuleReplacementPlugin(),
-  ],
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'server.js',
