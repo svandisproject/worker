@@ -10,6 +10,8 @@ import {SocketService} from "../common/socket/SocketService";
 import {SOCKET_EVENTS} from "./SocketEvents";
 import {TaskService} from "./services/TaskService";
 import Socket = SocketIOClient.Socket;
+import {WebSocketServer} from '@nestjs/websockets';
+import {Server} from 'socket.io';
 
 @Injectable()
 export class WorkerTaskRunner {
@@ -17,6 +19,7 @@ export class WorkerTaskRunner {
     private readonly TERMINATE_TIMEOUT = 300000;
 
     private socket: Socket;
+    @WebSocketServer() server: Server;
 
     private activeTaskSubscription: Subscription;
     private activeHeartbeatSubscription: Subscription;

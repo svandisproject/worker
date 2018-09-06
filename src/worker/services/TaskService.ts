@@ -1,5 +1,5 @@
 import {HttpService, Injectable, Logger} from "@nestjs/common";
-import {catchError, concatMap, finalize, map, take} from "rxjs/internal/operators";
+import {catchError, concatMap, finalize, map, take, tap} from "rxjs/internal/operators";
 import {TaskConfiguration} from "../../api/svandis/resources/dataModel/TaskConfiguration";
 import {EMPTY, interval, Observable} from "rxjs/index";
 import * as _ from "lodash";
@@ -8,6 +8,7 @@ import {ContentExtractorService} from "./ContentExtractorService";
 import {SocketService} from "../../common/socket/SocketService";
 import {SOCKET_EVENTS} from "../SocketEvents";
 import Socket = SocketIOClient.Socket;
+import {StatisticsService} from './StatisticsService';
 
 @Injectable()
 export class TaskService {
@@ -17,6 +18,7 @@ export class TaskService {
 
     constructor(private webCrawler: GeneralWebCrawler,
                 private httpService: HttpService,
+                private statService: StatisticsService,
                 private socketService: SocketService,
                 private extractorService: ContentExtractorService) {
         this.socket = this.socketService.getSocket();
@@ -101,7 +103,10 @@ export class TaskService {
             {urls: urls, baseUrl: task.config.url}
         );
         return this.onValidationComplete()
-            .pipe(finalize(() => console.log('validation, done')));
+            .pipe(
+                tap((res) => this.statService.addUrls(res.urls)),
+                finalize(() => console.log('validation, done'))
+            );
 
     }
 

@@ -6,6 +6,7 @@ import {ContentExtractorService} from "./services/ContentExtractorService";
 import {AppCommonModule} from "../common/AppCommonModule";
 import {GeneralWebCrawler} from "../crawler/services/GeneralWebCrawler";
 import {TaskService} from "./services/TaskService";
+import {StatisticsService} from './services/StatisticsService';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import {TaskService} from "./services/TaskService";
     providers: [
         WorkerTaskRunner,
         TaskService,
+        StatisticsService,
         GeneralWebCrawler,
         ContentExtractorService
     ],
