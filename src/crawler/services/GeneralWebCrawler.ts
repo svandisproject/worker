@@ -23,7 +23,6 @@ export class GeneralWebCrawler extends AbstractCrawler {
             onComplete(results);
         });
         crawler.start();
-
     }
 
     protected crawlForLinks(task: TaskConfiguration): any {
