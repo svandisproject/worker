@@ -4,24 +4,26 @@ import {TaskConfiguration} from "../../api/svandis/resources/dataModel/TaskConfi
 import {Observable} from "rxjs/internal/Observable";
 import {Injectable} from "@nestjs/common";
 import * as _ from "lodash";
+import {Subject} from 'rxjs/internal/Subject';
 
 @Injectable()
 export class GeneralWebCrawler extends AbstractCrawler {
 
-    public getLinks(task: TaskConfiguration): Observable<string[]> {
+    public getLinks(task: TaskConfiguration, onComplete: (results) => void) {
+        console.log('web crawler received a task', task);
         const crawler = this.crawlForLinks(task);
         let results = [];
 
-        return Observable.create((observer) => {
-            crawler.on('discoverycomplete', (queItem, resource) => {
-                results = _.concat(results, resource);
-            });
-            crawler.on('complete', () => {
-                observer.next(results);
-                observer.complete();
-            });
-            crawler.start();
+        crawler.on('discoverycomplete', (queItem, resource) => {
+            console.log('crawl resource parsed', resource);
+            results = _.concat(results, resource);
         });
+        crawler.on('complete', () => {
+            console.log('crawling completed' , results);
+            onComplete(results);
+        });
+        crawler.start();
+
     }
 
     protected crawlForLinks(task: TaskConfiguration): any {

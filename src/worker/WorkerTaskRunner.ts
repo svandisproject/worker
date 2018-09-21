@@ -81,9 +81,13 @@ export class WorkerTaskRunner {
         this.socket.on(this.SOCKET_EVENTS.TASK_UPDATE, (tasks: TaskConfiguration[]) => {
             if (!this.taskService.getIsBusy()) {
                 Logger.log("Crawling tasks received");
-                this.activeTaskSubscription = this.taskService.executeTask(tasks)
-                    .pipe(finalize(() => this.taskService.unsetIsBusy()))
-                    .subscribe();
+                console.log(tasks);
+                this.taskService.executeTask(tasks, () => {
+                    console.log('all tasks done, closing');
+                    this.taskService.unsetIsBusy();
+                    // this.socket.close();
+                    // this.onTaskUpdate();
+                });
             }
         });
     }
@@ -107,7 +111,6 @@ export class WorkerTaskRunner {
         Logger.log('Connection lost, unsubscribe tasks');
         if (!this.taskService.getIsBusy()) {
             this.activeHeartbeatSubscription.unsubscribe();
-            this.activeTaskSubscription.unsubscribe();
         }
     }
 
