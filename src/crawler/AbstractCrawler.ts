@@ -3,7 +3,7 @@ import {Observable} from "rxjs/internal/Observable";
 
 export abstract class AbstractCrawler {
 
-    abstract getLinks(task: TaskConfiguration): Observable<string[]>;
+    abstract getLinks(task: TaskConfiguration, onComplete: (results) => void): void;
 
     protected abstract crawlForLinks(task: TaskConfiguration): any;
 
