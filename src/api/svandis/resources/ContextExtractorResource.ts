@@ -1,6 +1,7 @@
 import {HttpService, Injectable} from "@nestjs/common";
 import {Observable} from "rxjs/index";
 import {SecuredResource} from "./SecuredResource";
+import {AuthService} from '../../../common/auth/AuthService';
 
 @Injectable()
 export class ContextExtractorResource extends SecuredResource {

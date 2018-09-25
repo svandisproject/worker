@@ -11,10 +11,6 @@ export class WorkerResource extends SecuredResource {
         super();
     }
 
-    public register(secret: string): Observable<AxiosResponse<{ token: string }>> {
-        return this.httpService.post(AppConfig.API_URL + '/worker/register', {secret: secret});
-    }
-
     public heartbeat(): Observable<AxiosResponse<any>> {
         return this.httpService
             .post(AppConfig.API_URL + '/worker/heartbeat', null, this.getSecuredRequestConfig());

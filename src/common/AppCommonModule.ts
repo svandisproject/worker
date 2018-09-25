@@ -1,14 +1,16 @@
 import {Module} from "@nestjs/common";
 import {SocketService} from "./socket/SocketService";
+import {AuthService} from './auth/AuthService';
 
 @Module({
     providers: [
+        AuthService,
         SocketService
     ],
     exports: [
-        SocketService
+        SocketService,
+        AuthService
     ]
 })
 export class AppCommonModule {
-
 }
