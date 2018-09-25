@@ -30,26 +30,8 @@ export class WorkerTaskRunner {
         this.socket = this.socketService.getSocket();
     }
 
-    /**
-     * Registers worker and stores token
-     * @param secret
-     * @returns {Observable<boolean>} true on success
-     */
-    public registerWorker(secret): Observable<boolean> {
-        if (!secret) {
-            Logger.log(colors.red('Secret is required to register worker'));
-            process.exit(1);
-        }
-        Logger.log(colors.red('Registering worker'));
-        return this.workerResource.register(secret)
-            .pipe(
-                tap((response) => this.saveTokenToFile(response)),
-                catchError((err: AxiosError) => this.handleRegistrationError(err)),
-                map(() => true)
-            );
-    }
-
     public startWorker(): void {
+
         this.socket.on(this.SOCKET_EVENTS.CONNECT, () => {
             Logger.log(colors.yellow("Connected to socket server, worker started"));
 
@@ -85,8 +67,6 @@ export class WorkerTaskRunner {
                 this.taskService.executeTask(tasks, () => {
                     console.log('all tasks done, closing');
                     this.taskService.unsetIsBusy();
-                    // this.socket.close();
-                    // this.onTaskUpdate();
                 });
             }
         });
@@ -99,25 +79,11 @@ export class WorkerTaskRunner {
             );
     }
 
-    private handleRegistrationError(err: AxiosError) {
-        Logger.error(colors.red("Error registering worker"));
-        if (err.response.status === 403) {
-            Logger.error(colors.red("Bad worker secret"));
-        }
-        return throwError(err);
-    }
-
     private destroySubscriptions() {
         Logger.log('Connection lost, unsubscribe tasks');
         if (!this.taskService.getIsBusy()) {
             this.activeHeartbeatSubscription.unsubscribe();
         }
-    }
-
-    private saveTokenToFile(response) {
-        const token = response.data.token;
-        fs.writeFileSync((process.env.PWD || process.cwd()) + '/runtime.json', JSON.stringify({token: token}));
-        Logger.log(colors.bgGreen.black('Successfully registered worker'));
     }
 
     /**
