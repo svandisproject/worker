@@ -24,6 +24,6 @@ export class AppModule {
 
     constructor() {
         this.argv = require('yargs').argv;
-        AuthService.setToken(this.argv.token);
+        AuthService.setToken(this.argv.token || process.env.TOKEN);
     }
 }
